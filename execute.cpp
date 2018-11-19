@@ -23,6 +23,10 @@ unsigned int signExtend8to32ui(char i) {
   return static_cast<unsigned int>(static_cast<int>(i));
 }
 
+unsigned int signExtend11to32ui(char i) {
+  return static_cast<unsigned int>(static_cast<int>(i));
+}
+
 // This is the global object you'll use to store condition codes N,Z,V,C
 // Set these bits appropriately in execute below.
 ASPR flags;
@@ -132,12 +136,12 @@ static int checkCondition(unsigned short cond) {
 }
 
 void execute() {
-  Data16 instr = imem[PC];
+  Data16 instr = imem[PC]; /* Get current instruction */
   Data16 instr2;
   Data32 temp(0); // Use this for STRB instructions
   Thumb_Types itype;
   // the following counts as a read to PC
-  unsigned int pctarget = PC + 2;
+  unsigned int pctarget = PC + 2; 
   unsigned int addr;
   int i, n, offset;
   unsigned int list, mask;
@@ -159,6 +163,7 @@ void execute() {
   LDRL_Type ldrl(instr);
   ADD_SP_Type addsp(instr);
 
+  /* Create instances of each instruction type class */
   BL_Ops bl_ops;
   ALU_Ops add_ops;
   DP_Ops dp_ops;
@@ -169,40 +174,43 @@ void execute() {
   // This counts as a write to the PC register
   rf.write(PC_REG, pctarget);
 
+  /* Decodes the instruction */
   itype = decode(ALL_Types(instr));
 
   // CPE 315: The bulk of your work is in the following switch statement
   // All instructions will need to have stats and cache access info added
   // as appropriate for that instruction.
   switch(itype) {
-    case ALU:
-      add_ops = decode(alu);
+    case ALU: /* ALU instructions */
+      add_ops = decode(alu); /* Get operands of instruction */
       switch(add_ops) {
-        case ALU_LSLI:
+        case ALU_LSLI: /* ALU left-shift */
           break;
-        case ALU_ADDR:
+        case ALU_ADDR: /* ALU ADD register arguments */
           // needs stats and flags
           rf.write(alu.instr.addr.rd, rf[alu.instr.addr.rn] + rf[alu.instr.addr.rm]);
           break;
-        case ALU_SUBR:
+        case ALU_SUBR: /* ALU SUB register arguments */
+          rf.write(alu.instr.subr.rd, rf[alu.instr.subr.rn] - rf[alu.instr.subr.rm]);
           break;
-        case ALU_ADD3I:
+        case ALU_ADD3I: /* ALU ADD register and immediate args */
           // needs stats and flags
           rf.write(alu.instr.add3i.rd, rf[alu.instr.add3i.rn] + alu.instr.add3i.imm);
           break;
-        case ALU_SUB3I:
+        case ALU_SUB3I: /* ALU SUB register and immediate args */
+          rf.write(alu.instr.sub3i.rd, rf[alu.instr.sub3i.rn] + alu.instr.sub3i.imm);
           break;
-        case ALU_MOV:
+        case ALU_MOV: /* ALU MOV register and/or immediate args */
           // needs stats and flags
           rf.write(alu.instr.mov.rdn, alu.instr.mov.imm);
           break;
-        case ALU_CMP:
+        case ALU_CMP: /* ALU CMP register and/or immediate args */
           break;
-        case ALU_ADD8I:
+        case ALU_ADD8I: /* ALU ADD register args */
           // needs stats and flags
           rf.write(alu.instr.add8i.rdn, rf[alu.instr.add8i.rdn] + alu.instr.add8i.imm);
           break;
-        case ALU_SUB8I:
+        case ALU_SUB8I: /* ALU SUB register args */
           break;
         default:
           cout << "instruction not implemented" << endl;
@@ -267,32 +275,32 @@ void execute() {
       // to implement ldrb/strb, ldm/stm and push/pop
       ldst_ops = decode(ld_st);
       switch(ldst_ops) {
-        case STRI:
+        case STRI: /* store in register plus immediate */
           // functionally complete, needs stats
           addr = rf[ld_st.instr.ld_st_imm.rn] + ld_st.instr.ld_st_imm.imm * 4;
           dmem.write(addr, rf[ld_st.instr.ld_st_imm.rt]);
           break;
-        case LDRI:
+        case LDRI: /* load from register plus immediate */
           // functionally complete, needs stats
           addr = rf[ld_st.instr.ld_st_imm.rn] + ld_st.instr.ld_st_imm.imm * 4;
           rf.write(ld_st.instr.ld_st_imm.rt, dmem[addr]);
           break;
-        case STRR:
+        case STRR: /* store in register plus register */
           // need to implement
           break;
-        case LDRR:
+        case LDRR: /* load from register plus register */
           // need to implement
           break;
-        case STRBI:
+        case STRBI: /* store in register plus byte-immediate */ 
           // need to implement
           break;
-        case LDRBI:
+        case LDRBI: /* load from register plus byte-immediate */ 
           // need to implement
           break;
-        case STRBR:
+        case STRBR: /* store in register plus byte-register */ 
           // need to implement
           break;
-        case LDRBR:
+        case LDRBR: /* load from register plus byte-register */ 
           // need to implement
           break;
       }
@@ -300,23 +308,101 @@ void execute() {
     case MISC:
       misc_ops = decode(misc);
       switch(misc_ops) {
-        case MISC_PUSH:
-          // need to implement
+        case MISC_PUSH: /* Push onto stack */
+          rf.write(SP_REG, SP + 4);
+          for(int i = 1; i <= 128; i <<= 1) {
+            if (misc.instr.push.reg_list & 1) {
+              rf.write(SP_REG, SP + 4);
+              dmem.write(SP, rf[0]);
+              break;
+            }
+            if (misc.instr.push.reg_list & 2) {
+              rf.write(SP_REG, SP + 4);
+              dmem.write(SP, rf[1]);
+            }
+            if (misc.instr.push.reg_list & 4) {
+              rf.write(SP_REG, SP + 4);
+              dmem.write(SP, rf[2]);
+            }
+            if (misc.instr.push.reg_list & 8) {
+              rf.write(SP_REG, SP + 4);
+              dmem.write(SP, rf[3]);
+            }
+            if (misc.instr.push.reg_list & 16) {
+              rf.write(SP_REG, SP + 4);
+              dmem.write(SP, rf[4]);
+            }
+            if (misc.instr.push.reg_list & 32) {
+              rf.write(SP_REG, SP + 4);
+              dmem.write(SP, rf[5]);
+            }
+            if (misc.instr.push.reg_list & 64) {
+              rf.write(SP_REG, SP + 4);
+              dmem.write(SP, rf[6]);
+            }
+            if (misc.instr.push.reg_list & 128) {
+              rf.write(SP_REG, SP + 4);
+              dmem.write(SP, rf[7]);
+            }
+            if (misc.instr.push.m) {
+              rf.write(SP_REG, SP + 4);
+              dmem.write(SP, LR);
+            }
+          }
           break;
-        case MISC_POP:
-          // need to implement
+        case MISC_POP: /* Pop off stack */
+          for(int i = 1; i <= 128; i <<= 1) {
+            if (misc.instr.pop.reg_list & 1) {
+              rf.write(0, dmem[SP]);
+              rf.write(SP_REG, SP - 4);
+              break;
+            }
+            if (misc.instr.pop.reg_list & 2) {
+              rf.write(1, dmem[SP]);
+              rf.write(SP_REG, SP - 4);
+            }
+            if (misc.instr.pop.reg_list & 4) {
+              rf.write(2, dmem[SP]);
+              rf.write(SP_REG, SP - 4);
+            }
+            if (misc.instr.pop.reg_list & 8) {
+              rf.write(3, dmem[SP]);
+              rf.write(SP_REG, SP - 4);
+            }
+            if (misc.instr.pop.reg_list & 16) {
+              rf.write(4, dmem[SP]);
+              rf.write(SP_REG, SP - 4);
+            }
+            if (misc.instr.pop.reg_list & 32) {
+              rf.write(5, dmem[SP]);
+              rf.write(SP_REG, SP - 4);
+            }
+            if (misc.instr.pop.reg_list & 64) {
+              rf.write(6, dmem[SP]);
+              rf.write(SP_REG, SP - 4);
+            }
+            if (misc.instr.pop.reg_list & 128) {
+              rf.write(7, dmem[SP]);
+              rf.write(SP_REG, SP - 4);
+            }
+            if (misc.instr.pop.m) {
+              rf.write(LR_REG, dmem[SP]);
+              rf.write(SP_REG, SP - 4);
+            }
+          }
+          rf.write(SP_REG, SP - 4);
           break;
-        case MISC_SUB:
+        case MISC_SUB: /* sub from sp */
           // functionally complete, needs stats
           rf.write(SP_REG, SP - (misc.instr.sub.imm*4));
           break;
-        case MISC_ADD:
+        case MISC_ADD: /* add to sp */
           // functionally complete, needs stats
           rf.write(SP_REG, SP + (misc.instr.add.imm*4));
           break;
       }
       break;
-    case COND:
+    case COND: /* Conditional branches */
       decode(cond);
       // Once you've completed the checkCondition function,
       // this should work for all your conditional branches.
@@ -325,16 +411,17 @@ void execute() {
         rf.write(PC_REG, PC + 2 * signExtend8to32ui(cond.instr.b.imm) + 2);
       }
       break;
-    case UNCOND:
+    case UNCOND: /* Unconditional branch */
       // Essentially the same as the conditional branches, but with no
       // condition check, and an 11-bit immediate field
       decode(uncond);
+      rf.write(PC_REG, PC + 2 * signExtend11to32ui(uncond.instr.b.imm) + 2);
       break;
-    case LDM:
+    case LDM: /* Load from non-cacheable memory */
       decode(ldm);
       // need to implement
       break;
-    case STM:
+    case STM: /* Store to non-cacheable memory */
       decode(stm);
       // need to implement
       break;
