@@ -240,9 +240,13 @@ void execute() {
       add_ops = decode(alu); /* Get operands of instruction */
       switch(add_ops) {
         case ALU_LSLI: /* ALU left-shift */
+          stats.numRegReads += 3;
+          stats.numRegWrites += 1;
+          rf.write(alu.instr.lsli.rd, rf[alu.instr.lsli.rm] << alu.instr.lsli.imm);
+          setCarryOverflow(rf[alu.instr.lsli.rm], alu.instr.lsli.imm, OF_SHIFT);
+          setNegativeZero(rf[alu.instr.lsli.rd]);
           break;
         case ALU_ADDR: /* ALU ADD register arguments */
-          // needs stats
           stats.numRegReads += 5;
           stats.numRegWrites += 1;
           rf.write(alu.instr.addr.rd, rf[alu.instr.addr.rn] + rf[alu.instr.addr.rm]);
@@ -257,7 +261,6 @@ void execute() {
           setNegativeZero(rf[alu.instr.subr.rd]);
           break;
         case ALU_ADD3I: /* ALU ADD register and immediate args */
-          // needs stats
           stats.numRegReads += 4;
           stats.numRegWrites += 1;
           rf.write(alu.instr.add3i.rd, rf[alu.instr.add3i.rn] + alu.instr.add3i.imm);
@@ -265,7 +268,6 @@ void execute() {
           setNegativeZero(rf[alu.instr.add3i.rd]);
           break;
         case ALU_SUB3I: /* ALU SUB register and immediate args */
-          // need stats
           stats.numRegReads += 4;
           stats.numRegWrites += 1;
           rf.write(alu.instr.sub3i.rd, rf[alu.instr.sub3i.rn] + alu.instr.sub3i.imm);
@@ -273,21 +275,18 @@ void execute() {
           setNegativeZero(rf[alu.instr.sub3i.rd]);
           break;
         case ALU_MOV: /* ALU MOV register and/or immediate args */
-          // needs stats
           stats.numRegReads += 1;
           stats.numRegWrites += 1;
           rf.write(alu.instr.mov.rdn, alu.instr.mov.imm);
           setNegativeZero(rf[alu.instr.mov.rdn]);
           break;
         case ALU_CMP: /* ALU CMP register and/or immediate args */
-          // need stats
           stats.numRegReads += 3;
           stats.numRegWrites += 1;
           setCarryOverflow(rf[alu.instr.cmp.rdn], alu.instr.cmp.imm, OF_ADD);
           setNegativeZero(rf[alu.instr.cmp.rdn] - alu.instr.cmp.imm);
           break;
         case ALU_ADD8I: /* ALU ADD register args */
-          // needs stats
           stats.numRegReads += 4;
           stats.numRegWrites += 1;
           rf.write(alu.instr.add8i.rdn, rf[alu.instr.add8i.rdn] + alu.instr.add8i.imm);
@@ -295,7 +294,6 @@ void execute() {
           setNegativeZero(rf[alu.instr.add8i.rdn]);
           break;
         case ALU_SUB8I: /* ALU SUB register args */
-          // needs stats
           stats.numRegReads += 4;
           stats.numRegWrites += 1;
           rf.write(alu.instr.sub8i.rdn, rf[alu.instr.sub8i.rdn] + alu.instr.sub8i.imm);
@@ -609,7 +607,56 @@ void execute() {
       break;
     case STM: /* Store to non-cacheable memory */
       decode(stm);
-      // need to implement
+      addr = rf[stm.instr.stm.rn]
+      stats.numRegReads += 1;
+      if (stm.instr.stm.reg_list & 1) { // Check for r0
+        dmem.write(addr, rf[0]);
+        addr += 4
+        stats.numRegReads += 1;
+        stats.numMemWrites += 1;
+      }
+      if (stm.instr.stm.reg_list & 2) { // Check for r1
+        dmem.write(addr, rf[1]);
+        addr += 4
+        stats.numRegReads += 1;
+        stats.numMemWrites += 1;
+      }
+      if (stm.instr.stm.reg_list & 4) { // Check for r2
+        dmem.write(addr, rf[2]);
+        addr += 4
+        stats.numRegReads += 1;
+        stats.numMemWrites += 1;
+      }
+      if (stm.instr.stm.reg_list & 8) { // Check for r3
+        dmem.write(addr, rf[3]);
+        addr += 4
+        stats.numRegReads += 1;
+        stats.numMemWrites += 1;
+      }
+      if (stm.instr.stm.reg_list & 16) { // Check for r4
+        dmem.write(addr, rf[4]);
+        addr += 4
+        stats.numRegReads += 1;
+        stats.numMemWrites += 1;
+      }
+      if (stm.instr.stm.reg_list & 32) { // Check for r5
+        dmem.write(addr, rf[5]);
+        addr += 4
+        stats.numRegReads += 1;
+        stats.numMemWrites += 1;
+      }
+      if (stm.instr.stm.reg_list & 64) { // Check for r6
+        dmem.write(addr, rf[6]);
+        addr += 4
+        stats.numRegReads += 1;
+        stats.numMemWrites += 1;
+      }
+      if (stm.instr.stm.reg_list & 128) { // Check for r7
+        dmem.write(addr, rf[7]);
+        addr += 4
+        stats.numRegReads += 1;
+        stats.numMemWrites += 1;
+      }
       break;
     case LDRL:
       // This instruction is complete, nothing needed
