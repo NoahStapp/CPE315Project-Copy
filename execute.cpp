@@ -381,11 +381,11 @@ void execute() {
           rf.write(ld_st.instr.ld_st_imm.rt, dmem[addr]);
           break;
         case STRR: /* store in register plus register */
-          addr = rf[ld_st.instr.ld_st_imm.rn] + ld_st.instr.ld_st_reg.rm * 4;
+          addr = rf[ld_st.instr.ld_st_imm.rn] + rf[ld_st.instr.ld_st_reg.rm] * 4;
           dmem.write(addr, rf[ld_st.instr.ld_st_imm.rt]);
           break;
         case LDRR: /* load from register plus register */
-          addr = rf[ld_st.instr.ld_st_imm.rn] + ld_st.instr.ld_st_reg.rm * 4;
+          addr = rf[ld_st.instr.ld_st_imm.rn] + rf[ld_st.instr.ld_st_reg.rm] * 4;
           rf.write(ld_st.instr.ld_st_imm.rt, dmem[addr]);
           break;
         case STRBI: /* store in register plus byte-immediate */ 
@@ -397,11 +397,11 @@ void execute() {
           rf.write(ld_st.instr.ld_st_imm.rt, dmem[addr]);
           break;
         case STRBR: /* store in register plus byte-register */ 
-          addr = rf[ld_st.instr.ld_st_imm.rn] + ld_st.instr.ld_st_reg.rm;
+          addr = rf[ld_st.instr.ld_st_imm.rn] + rf[ld_st.instr.ld_st_reg.rm];
           dmem.write(addr, rf[ld_st.instr.ld_st_imm.rt]);
           break;
         case LDRBR: /* load from register plus byte-register */ 
-          addr = rf[ld_st.instr.ld_st_imm.rn] + ld_st.instr.ld_st_reg.rm;
+          addr = rf[ld_st.instr.ld_st_imm.rn] + rf[ld_st.instr.ld_st_reg.rm];
           rf.write(ld_st.instr.ld_st_imm.rt, dmem[addr]);
           break;
       }
@@ -574,35 +574,35 @@ void execute() {
       decode(ldm);
       addr = rf[ldm.instr.LDM_Instr.rn]
       if (ldm.instr.LDM_Instr.reg_list & 1) { // Check for r0
-        rf.write(rf[0], dmem[addr]);
+        rf.write(0, dmem[addr]);
         addr += 4;
       }
       if (ldm.instr.LDM_Instr.reg_list & 2) { // Check for r1
-        rf.write(rf[1], dmem[addr]);
+        rf.write(1, dmem[addr]);
         addr += 4;
       }
       if (ldm.instr.LDM_Instr.reg_list & 4) { // Check for r2
-        rf.write(rf[2], dmem[addr]);
+        rf.write(2, dmem[addr]);
         addr += 4;
       }
       if (ldm.instr.LDM_Instr.reg_list & 8) { // Check for r3
-        rf.write(rf[3], dmem[addr]);
+        rf.write(3, dmem[addr]);
         addr += 4;
       }
       if (ldm.instr.LDM_Instr.reg_list & 16) { // Check for r4
-        rf.write(rf[4], dmem[addr]);
+        rf.write(4, dmem[addr]);
         addr += 4;
       }
       if (ldm.instr.LDM_Instr.reg_list & 32) { // Check for r5
-        rf.write(rf[5], dmem[addr]);
+        rf.write(5, dmem[addr]);
         addr += 4;
       }
       if (ldm.instr.LDM_Instr.reg_list & 64) { // Check for r6
-        rf.write(rf[6], dmem[addr]);
+        rf.write(6, dmem[addr]);
         addr += 4;
       }
       if (ldm.instr.LDM_Instr.reg_list & 128) { // Check for r7
-        rf.write(rf[7], dmem[addr]);
+        rf.write(7, dmem[addr]);
       }
       break;
     case STM: /* Store to non-cacheable memory */
