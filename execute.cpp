@@ -196,6 +196,7 @@ void execute() {
   Thumb_Types itype;
   // the following counts as a read to PC
   unsigned int pctarget = PC + 2; 
+  stats.numRegReads += 1;
   unsigned int addr;
   int i, n, offset;
   unsigned int list, mask;
@@ -228,6 +229,7 @@ void execute() {
 
   // This counts as a write to the PC register
   rf.write(PC_REG, pctarget);
+  stats.numRegWrites += 1;
 
   /* Decodes the instruction */
   itype = decode(ALL_Types(instr));
@@ -240,61 +242,58 @@ void execute() {
       add_ops = decode(alu); /* Get operands of instruction */
       switch(add_ops) {
         case ALU_LSLI: /* ALU left-shift */
-          stats.numRegReads += 3;
+          stats.numRegReads += 1;
           stats.numRegWrites += 1;
           rf.write(alu.instr.lsli.rd, rf[alu.instr.lsli.rm] << alu.instr.lsli.imm);
           setCarryOverflow(rf[alu.instr.lsli.rm], alu.instr.lsli.imm, OF_SHIFT);
           setNegativeZero(rf[alu.instr.lsli.rd]);
           break;
         case ALU_ADDR: /* ALU ADD register arguments */
-          stats.numRegReads += 5;
+          stats.numRegReads += 2;
           stats.numRegWrites += 1;
           rf.write(alu.instr.addr.rd, rf[alu.instr.addr.rn] + rf[alu.instr.addr.rm]);
           setCarryOverflow(rf[alu.instr.addr.rn], rf[alu.instr.addr.rm], OF_ADD);
           setNegativeZero(rf[alu.instr.addr.rd]);
           break;
         case ALU_SUBR: /* ALU SUB register arguments */
-          stats.numRegReads += 5;
+          stats.numRegReads += 2;
           stats.numRegWrites += 1;
           rf.write(alu.instr.subr.rd, rf[alu.instr.subr.rn] - rf[alu.instr.subr.rm]);
           setCarryOverflow(rf[alu.instr.subr.rn], rf[alu.instr.subr.rm], OF_SUB);
           setNegativeZero(rf[alu.instr.subr.rd]);
           break;
         case ALU_ADD3I: /* ALU ADD register and immediate args */
-          stats.numRegReads += 4;
+          stats.numRegReads += 1;
           stats.numRegWrites += 1;
           rf.write(alu.instr.add3i.rd, rf[alu.instr.add3i.rn] + alu.instr.add3i.imm);
           setCarryOverflow(rf[alu.instr.add3i.rn], rf[alu.instr.add3i.imm], OF_ADD);
           setNegativeZero(rf[alu.instr.add3i.rd]);
           break;
         case ALU_SUB3I: /* ALU SUB register and immediate args */
-          stats.numRegReads += 4;
+          stats.numRegReads += 1;
           stats.numRegWrites += 1;
           rf.write(alu.instr.sub3i.rd, rf[alu.instr.sub3i.rn] + alu.instr.sub3i.imm);
           setCarryOverflow(rf[alu.instr.sub3i.rn], rf[alu.instr.sub3i.imm], OF_SUB);
           setNegativeZero(rf[alu.instr.sub3i.rd]);
           break;
         case ALU_MOV: /* ALU MOV register and/or immediate args */
-          stats.numRegReads += 1;
           stats.numRegWrites += 1;
           rf.write(alu.instr.mov.rdn, alu.instr.mov.imm);
           setNegativeZero(rf[alu.instr.mov.rdn]);
           break;
         case ALU_CMP: /* ALU CMP register and/or immediate args */
-          stats.numRegReads += 3;
-          stats.numRegWrites += 1;
           setCarryOverflow(rf[alu.instr.cmp.rdn], alu.instr.cmp.imm, OF_ADD);
           setNegativeZero(rf[alu.instr.cmp.rdn] - alu.instr.cmp.imm);
           break;
         case ALU_ADD8I: /* ALU ADD register args */
-          stats.numRegReads += 4;
+          stats.numRegReads += 1;
           stats.numRegWrites += 1;
           rf.write(alu.instr.add8i.rdn, rf[alu.instr.add8i.rdn] + alu.instr.add8i.imm);
           setCarryOverflow(rf[alu.instr.add8i.rdn], rf[alu.instr.add8i.imm], OF_ADD);
           setNegativeZero(rf[alu.instr.add8i.rdn]);
           break;
         case ALU_SUB8I: /* ALU SUB register args */
-          stats.numRegReads += 4;
+          stats.numRegReads += 1;
           stats.numRegWrites += 1;
           rf.write(alu.instr.sub8i.rdn, rf[alu.instr.sub8i.rdn] + alu.instr.sub8i.imm);
           setCarryOverflow(rf[alu.instr.sub8i.rdn], rf[alu.instr.sub8i.imm], OF_SUB);
@@ -355,6 +354,8 @@ void execute() {
           rf.write((sp.instr.mov.d << 3 ) | sp.instr.mov.rd, rf[sp.instr.mov.rm]);
           break;
         case SP_ADD:
+          // need to implement
+          break;
         case SP_CMP:
           // need to implement these
           break;
@@ -381,27 +382,42 @@ void execute() {
           rf.write(ld_st.instr.ld_st_imm.rt, dmem[addr]);
           break;
         case STRR: /* store in register plus register */
-          addr = rf[ld_st.instr.ld_st_imm.rn] + ld_st.instr.ld_st_reg.rm * 4;
+          stats.numRegReads += 3;
+          stats.numMemWrites += 1;
+          addr = rf[ld_st.instr.ld_st_imm.rn] + rf[ld_st.instr.ld_st_reg.rm] * 4;
           dmem.write(addr, rf[ld_st.instr.ld_st_imm.rt]);
           break;
         case LDRR: /* load from register plus register */
-          addr = rf[ld_st.instr.ld_st_imm.rn] + ld_st.instr.ld_st_reg.rm * 4;
+          stats.numRegReads += 2;
+          stats.numRegWrites += 1;
+          stats.numMemReads += 1;
+          addr = rf[ld_st.instr.ld_st_imm.rn] + rf[ld_st.instr.ld_st_reg.rm] * 4;
           rf.write(ld_st.instr.ld_st_imm.rt, dmem[addr]);
           break;
         case STRBI: /* store in register plus byte-immediate */ 
+          stats.numRegReads += 2;
+          stats.numMemWrites += 1;
           addr = rf[ld_st.instr.ld_st_imm.rn] + ld_st.instr.ld_st_imm.imm;
           dmem.write(addr, rf[ld_st.instr.ld_st_imm.rt]);
           break;
         case LDRBI: /* load from register plus byte-immediate */ 
+          stats.numRegReads += 1;
+          stats.numMemReads += 1;
+          stats.numRegWrites += 1;
           addr = rf[ld_st.instr.ld_st_imm.rn] + ld_st.instr.ld_st_imm.imm;
           rf.write(ld_st.instr.ld_st_imm.rt, dmem[addr]);
           break;
         case STRBR: /* store in register plus byte-register */ 
-          addr = rf[ld_st.instr.ld_st_imm.rn] + ld_st.instr.ld_st_reg.rm;
+          stats.numRegReads += 3;
+          stats.numMemWrites += 1;
+          addr = rf[ld_st.instr.ld_st_imm.rn] + rf[ld_st.instr.ld_st_reg.rm];
           dmem.write(addr, rf[ld_st.instr.ld_st_imm.rt]);
           break;
         case LDRBR: /* load from register plus byte-register */ 
-          addr = rf[ld_st.instr.ld_st_imm.rn] + ld_st.instr.ld_st_reg.rm;
+          stats.numRegReads += 2;
+          stats.numMemReads += 1;
+          stats.numRegWrites += 1;
+          addr = rf[ld_st.instr.ld_st_imm.rn] + rf[ld_st.instr.ld_st_reg.rm];
           rf.write(ld_st.instr.ld_st_imm.rt, dmem[addr]);
           break;
       }
@@ -478,63 +494,63 @@ void execute() {
           if (misc.instr.pop.reg_list & 1) { // Check for r0
             rf.write(0, dmem[SP]);
             rf.write(SP_REG, SP - 4);
-            stats.numRegWrites += 2;
+            stats.numRegWrites += 1;
             stats.numRegReads += 2;
             stats.numMemReads += 1;
           }
           if (misc.instr.pop.reg_list & 2) { // Check for r1
             rf.write(1, dmem[SP]);
             rf.write(SP_REG, SP - 4);
-            stats.numRegWrites += 2;
+            stats.numRegWrites += 1;
             stats.numRegReads += 2;
             stats.numMemReads += 1;
           }
           if (misc.instr.pop.reg_list & 4) { // Check for r2
             rf.write(2, dmem[SP]);
             rf.write(SP_REG, SP - 4);
-            stats.numRegWrites += 2;
+            stats.numRegWrites += 1;
             stats.numRegReads += 2;
             stats.numMemReads += 1;
           }
           if (misc.instr.pop.reg_list & 8) { // Check for r3
             rf.write(3, dmem[SP]); 
             rf.write(SP_REG, SP - 4);
-            stats.numRegWrites += 2;
+            stats.numRegWrites += 1;
             stats.numRegReads += 2;
             stats.numMemReads += 1;
           }
           if (misc.instr.pop.reg_list & 16) { // Check for r4
             rf.write(4, dmem[SP]);
             rf.write(SP_REG, SP - 4);
-            stats.numRegWrites += 2;
+            stats.numRegWrites += 1;
             stats.numRegReads += 2;
             stats.numMemReads += 1;
           }
           if (misc.instr.pop.reg_list & 32) { // Check for r5
             rf.write(5, dmem[SP]);
             rf.write(SP_REG, SP - 4);
-            stats.numRegWrites += 2;
+            stats.numRegWrites += 1;
             stats.numRegReads += 2;
             stats.numMemReads += 1;
           }
           if (misc.instr.pop.reg_list & 64) { // Check for r6
             rf.write(6, dmem[SP]);
             rf.write(SP_REG, SP - 4);
-            stats.numRegWrites += 2;
+            stats.numRegWrites += 1;
             stats.numRegReads += 2;
             stats.numMemReads += 1;
           }
           if (misc.instr.pop.reg_list & 128) { // Check for r7
             rf.write(7, dmem[SP]);
             rf.write(SP_REG, SP - 4);
-            stats.numRegWrites += 2;
+            stats.numRegWrites += 1;
             stats.numRegReads += 2;
             stats.numMemReads += 1;
           }
           if (misc.instr.pop.m) { // Check for pc
             rf.write(PC_REG, dmem[SP]);
             rf.write(SP_REG, SP - 4);
-            stats.numRegWrites += 2;
+            stats.numRegWrites += 1;
             stats.numRegReads += 2;
             stats.numMemReads += 1;
           }
@@ -543,13 +559,13 @@ void execute() {
           // functionally complete, needs stats
           stats.numRegWrites += 1;
           stats.numRegReads += 1;
-          rf.write(SP_REG, SP - (misc.instr.sub.imm*4));
+          rf.write(SP_REG, SP - (misc.instr.sub.imm * 4));
           break;
         case MISC_ADD: /* add to sp */
           // functionally complete, needs stats
           stats.numRegWrites += 1;
           stats.numRegReads += 1;
-          rf.write(SP_REG, SP + (misc.instr.add.imm*4));
+          rf.write(SP_REG, SP + (misc.instr.add.imm * 4));
           break;
       }
       break;
@@ -560,6 +576,7 @@ void execute() {
       // needs stats
       if (checkCondition(cond.instr.b.cond)){
         stats.numRegWrites += 1;
+        stats.numRegReads += 1;
         rf.write(PC_REG, PC + 2 * signExtend8to32ui(cond.instr.b.imm) + 2);
       }
       break;
@@ -568,92 +585,109 @@ void execute() {
       // condition check, and an 11-bit immediate field
       decode(uncond);
       stats.numRegWrites += 1;
+      stats.numRegReads += 1;
       rf.write(PC_REG, PC + 2 * signExtend11to32ui(uncond.instr.b.imm) + 2);
       break;
     case LDM: /* Load from non-cacheable memory */
       decode(ldm);
-      addr = rf[ldm.instr.LDM_Instr.rn]
-      if (ldm.instr.LDM_Instr.reg_list & 1) { // Check for r0
-        rf.write(rf[0], dmem[addr]);
+      addr = rf[ldm.instr.ldm.rn];
+      stats.numRegReads += 1;
+      if (ldm.instr.ldm.reg_list & 1) { // Check for r0
+        rf.write(0, dmem[addr]);
         addr += 4;
+        stats.numRegWrites += 1;
+        stats.numMemReads += 1;
       }
-      if (ldm.instr.LDM_Instr.reg_list & 2) { // Check for r1
-        rf.write(rf[1], dmem[addr]);
+      if (ldm.instr.ldm.reg_list & 2) { // Check for r1
+        rf.write(1, dmem[addr]);
         addr += 4;
+        stats.numRegWrites += 1;
+        stats.numMemReads += 1;
       }
-      if (ldm.instr.LDM_Instr.reg_list & 4) { // Check for r2
-        rf.write(rf[2], dmem[addr]);
+      if (ldm.instr.ldm.reg_list & 4) { // Check for r2
+        rf.write(2, dmem[addr]);
         addr += 4;
+        stats.numRegWrites += 1;
+        stats.numMemReads += 1;
       }
-      if (ldm.instr.LDM_Instr.reg_list & 8) { // Check for r3
-        rf.write(rf[3], dmem[addr]);
+      if (ldm.instr.ldm.reg_list & 8) { // Check for r3
+        rf.write(3, dmem[addr]);
         addr += 4;
+        stats.numRegWrites += 1;
+        stats.numMemReads += 1;
       }
-      if (ldm.instr.LDM_Instr.reg_list & 16) { // Check for r4
-        rf.write(rf[4], dmem[addr]);
+      if (ldm.instr.ldm.reg_list & 16) { // Check for r4
+        rf.write(4, dmem[addr]);
         addr += 4;
+        stats.numRegWrites += 1;
+        stats.numMemReads += 1;
       }
-      if (ldm.instr.LDM_Instr.reg_list & 32) { // Check for r5
-        rf.write(rf[5], dmem[addr]);
+      if (ldm.instr.ldm.reg_list & 32) { // Check for r5
+        rf.write(5, dmem[addr]);
         addr += 4;
+        stats.numRegWrites += 1;
+        stats.numMemReads += 1;
       }
-      if (ldm.instr.LDM_Instr.reg_list & 64) { // Check for r6
-        rf.write(rf[6], dmem[addr]);
+      if (ldm.instr.ldm.reg_list & 64) { // Check for r6
+        rf.write(6, dmem[addr]);
         addr += 4;
+        stats.numRegWrites += 1;
+        stats.numMemReads += 1;
       }
-      if (ldm.instr.LDM_Instr.reg_list & 128) { // Check for r7
-        rf.write(rf[7], dmem[addr]);
+      if (ldm.instr.ldm.reg_list & 128) { // Check for r7
+        rf.write(7, dmem[addr]);
+        stats.numRegWrites += 1;
+        stats.numMemReads += 1;
       }
       break;
     case STM: /* Store to non-cacheable memory */
       decode(stm);
-      addr = rf[stm.instr.stm.rn]
+      addr = rf[stm.instr.stm.rn];
       stats.numRegReads += 1;
       if (stm.instr.stm.reg_list & 1) { // Check for r0
         dmem.write(addr, rf[0]);
-        addr += 4
+        addr += 4;
         stats.numRegReads += 1;
         stats.numMemWrites += 1;
       }
       if (stm.instr.stm.reg_list & 2) { // Check for r1
         dmem.write(addr, rf[1]);
-        addr += 4
+        addr += 4;
         stats.numRegReads += 1;
         stats.numMemWrites += 1;
       }
       if (stm.instr.stm.reg_list & 4) { // Check for r2
         dmem.write(addr, rf[2]);
-        addr += 4
+        addr += 4;
         stats.numRegReads += 1;
         stats.numMemWrites += 1;
       }
       if (stm.instr.stm.reg_list & 8) { // Check for r3
         dmem.write(addr, rf[3]);
-        addr += 4
+        addr += 4;
         stats.numRegReads += 1;
         stats.numMemWrites += 1;
       }
       if (stm.instr.stm.reg_list & 16) { // Check for r4
         dmem.write(addr, rf[4]);
-        addr += 4
+        addr += 4;
         stats.numRegReads += 1;
         stats.numMemWrites += 1;
       }
       if (stm.instr.stm.reg_list & 32) { // Check for r5
         dmem.write(addr, rf[5]);
-        addr += 4
+        addr += 4;
         stats.numRegReads += 1;
         stats.numMemWrites += 1;
       }
       if (stm.instr.stm.reg_list & 64) { // Check for r6
         dmem.write(addr, rf[6]);
-        addr += 4
+        addr += 4;
         stats.numRegReads += 1;
         stats.numMemWrites += 1;
       }
       if (stm.instr.stm.reg_list & 128) { // Check for r7
         dmem.write(addr, rf[7]);
-        addr += 4
         stats.numRegReads += 1;
         stats.numMemWrites += 1;
       }
@@ -683,6 +717,7 @@ void execute() {
       // needs stats
       decode(addsp);
       stats.numRegWrites += 1;
+      stats.numRegReads += 1;
       rf.write(addsp.instr.add.rd, SP + (addsp.instr.add.imm*4));
       break;
     default:
