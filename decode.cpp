@@ -78,7 +78,9 @@ Thumb_Types decode (const ALL_Types data) {
 
 ALU_Ops decode (const ALU_Type data) {
   if (data.instr.lsli.op == ALU_LSLI_OP) {
-    // 315: insert code here to print lsls instruction
+    if (opts.instrs) { 
+      cout << "lsls r" << data.instr.lsli.rd  << ", #" << setbase(10) << data.instr.lsli.imm << endl;
+    }
     return ALU_LSLI;
   }
   else if (data.instr.addr.op == ALU_ADDR_OP) {
@@ -88,40 +90,41 @@ ALU_Ops decode (const ALU_Type data) {
     return ALU_ADDR;
   }
   else if (data.instr.subr.op == ALU_SUBR_OP) {
-    // 315: insert code here to print subs instruction
+    if (opts.instrs) { 
+      cout << "subs r" << data.instr.subr.rd  << ", r" << data.instr.subr.rn << ", r" << data.instr.subr.rm << endl;
+    }
     return ALU_SUBR;
   }
   else if (data.instr.add3i.op == ALU_ADD3I_OP) {
-    // complete
     if (opts.instrs) { 
       cout << "adds r" << data.instr.add3i.rd << ", r" << data.instr.add3i.rn << ", #" << data.instr.add3i.imm << endl;
     }
     return ALU_ADD3I;
   }
   else if (data.instr.sub3i.op == ALU_SUB3I_OP) {
-    // 315: insert code here to print subs instruction
+    if (opts.instrs) { 
+      cout << "subs r" << data.instr.sub3i.rd << ", r" << data.instr.sub3i.rn << ", #" << data.instr.sub3i.imm << endl;
+    }
     return ALU_SUB3I;
   }
   else if (data.instr.add8i.op == ALU_ADD8I_OP) {
-    // complete
     if (opts.instrs) { 
       cout << "adds r" << data.instr.add8i.rdn << ", #" << setbase(10) << data.instr.add8i.imm << endl;
     }
     return ALU_ADD8I;
   }
   else if (data.instr.sub8i.op == ALU_SUB8I_OP) {
-    // 315: insert code here to print subs instruction
-    return ALU_SUB8I;
+    if (opts.instrs) { 
+      cout << "subs r" << data.instr.sub8i.rdn << ", #" << setbase(10) << data.instr.sub8i.imm << endl;
+    }    return ALU_SUB8I;
   }
   else if (data.instr.cmp.op == ALU_CMP_OP) { 
-    // complete
     if (opts.instrs) { 
       cout << "cmp r" << data.instr.cmp.rdn << ", #" << setbase(10) << data.instr.cmp.imm << endl;
     }
     return ALU_CMP;
   }
   else if (data.instr.mov.op == ALU_MOV_OP) { 
-    // complete
     if (opts.instrs) { 
       cout << "movs r" << data.instr.mov.rdn << ", #" << setbase(10) << (data.instr.mov.imm) << endl;
     }
@@ -133,7 +136,9 @@ ALU_Ops decode (const ALU_Type data) {
 
 DP_Ops decode (const DP_Type data) {
   if (data.instr.DP_Instr.op == DP_CMP) {
-    // 315: insert code here to print cmp instruction
+    // if (opts.instrs) { 
+    //   cout << "cmp r" << data.instr.cmp.rdn << ", r" << data.instr.cmp.rm << endl;
+    // }
     return DP_CMP;
   }
   else {
@@ -169,12 +174,56 @@ SP_Ops decode (const SP_Type data) {
     }
     return SP_MOV;
   }
-  else if (data.instr.add.op == 0) {
-    // Here you'll need to SP_ADD similar to above
+  else if (data.instr.mov.op == 0) {
+    if (opts.instrs) { 
+      cout << "add";
+      if (data.instr.add.d) {
+        // These two cases handle stack pointer printing
+        if (data.instr.add.rd == 5) {
+          cout << " sp, r" << setbase(10) << data.instr.add.rm << endl;
+        }
+        else if (data.instr.add.rm == 13) {
+          cout << " r" << setbase(10) << (8+data.instr.add.rd) << ", sp" << endl;
+        }
+        // this case is for registers greater than r7 that aren't sp
+        else {
+          cout << " r" << setbase(10) << (8+data.instr.add.rd) << ", r" << setbase(10) << data.instr.add.rm << endl;
+        }
+      }
+      // another stack pointer case
+      else if (data.instr.add.rm == 13) {
+        cout << " r" << data.instr.add.rd << ", sp" << endl;
+      }
+      else {
+        cout << " r" << setbase(10) << data.instr.add.rd << ", r" << data.instr.add.rm << endl;
+      }
+    }
     return SP_ADD;
   }
   else if (data.instr.cmp.op == 1) {
-    // Here you'll need to SP_CMP similar to above
+    if (opts.instrs) { 
+      cout << "cmp";
+      if (data.instr.cmp.d) {
+        // These two cases handle stack pointer printing
+        if (data.instr.cmp.rd == 5) {
+          cout << " sp, r" << setbase(10) << data.instr.cmp.rm << endl;
+        }
+        else if (data.instr.cmp.rm == 13) {
+          cout << " r" << setbase(10) << (8+data.instr.cmp.rd) << ", sp" << endl;
+        }
+        // this case is for registers greater than r7 that aren't sp
+        else {
+          cout << " r" << setbase(10) << (8+data.instr.cmp.rd) << ", r" << setbase(10) << data.instr.cmp.rm << endl;
+        }
+      }
+      // another stack pointer case
+      else if (data.instr.cmp.rm == 13) {
+        cout << " r" << data.instr.cmp.rd << ", sp" << endl;
+      }
+      else {
+        cout << " r" << setbase(10) << data.instr.cmp.rd << ", r" << data.instr.cmp.rm << endl;
+      }
+    }
     return SP_CMP;
   }
   else {
