@@ -341,9 +341,9 @@ void execute() {
       dp_ops = decode(dp);
       switch(dp_ops) {
         case DP_CMP:
-          // stats.numRegReads += 2;
-          // setCarryOverflow(rf[dp.instr.cmp.rdn], rf[dp.instr.cmp.rm], OF_ADD);
-          // setNegativeZero(rf[dp.instr.cmp.rdn] - rf[dp.instr.cmp.rm]);
+          stats.numRegReads += 2;
+          setCarryOverflow(rf[dp.instr.cmp.rdn], rf[dp.instr.cmp.rm], OF_ADD);
+          setNegativeZero(rf[dp.instr.cmp.rdn] - rf[dp.instr.cmp.rm]);
           break;
       }
       break;
