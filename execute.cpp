@@ -342,8 +342,8 @@ void execute() {
       switch(dp_ops) {
         case DP_CMP:
           stats.numRegReads += 2;
-          setCarryOverflow(rf[dp.instr.cmp.rdn], rf[dp.instr.cmp.rm], OF_ADD);
-          setNegativeZero(rf[dp.instr.cmp.rdn] - rf[dp.instr.cmp.rm]);
+          setCarryOverflow(rf[dp.instr.DP_Instr.rdn], rf[dp.instr.DP_Instr.rm], OF_ADD);
+          setNegativeZero(rf[dp.instr.DP_Instr.rdn] - rf[dp.instr.DP_Instr.rm]);
           break;
       }
       break;
@@ -355,12 +355,19 @@ void execute() {
           stats.numRegReads += 1;
           stats.numRegWrites += 1;
           rf.write((sp.instr.mov.d << 3 ) | sp.instr.mov.rd, rf[sp.instr.mov.rm]);
+          setNegativeZero(rf[(sp.instr.mov.d << 3) | sp.instr.mov.rd]);
           break;
         case SP_ADD:
-          // need to implement
+          stats.numRegReads += 1;
+          stats.numRegWrites += 1;
+          rf.write((sp.instr.add.d << 3 ) | sp.instr.add.rd, rf[sp.instr.add.rd] + rf[sp.instr.add.rm]);
+          setCarryOverflow(rf[(sp.instr.add.d << 3 ) | sp.instr.add.rd], rf[sp.instr.add.rm], OF_ADD);
+          setNegativeZero(rf[(sp.instr.add.d << 3) | sp.instr.add.rd]);
           break;
         case SP_CMP:
-          // need to implement these
+          stats.numRegReads += 1;
+          setCarryOverflow((sp.instr.cmp.d << 3 ) | sp.instr.cmp.rd, rf[sp.instr.cmp.rm], OF_ADD);
+          setNegativeZero(rf[(sp.instr.cmp.d << 3 ) | sp.instr.cmp.rd]);
           break;
       }
       break;
@@ -603,10 +610,24 @@ void execute() {
       // Once you've completed the checkCondition function,
       // this should work for all your conditional branches.
       // needs stats
-      if (checkCondition(cond.instr.b.cond)){
+      if (checkCondition(cond.instr.b.cond)) {
         stats.numRegWrites += 1;
         stats.numRegReads += 1;
+        if (2 * signExtend8to32ui(cond.instr.b.imm) + 2 > 0) {
+          stats.numBackwardBranchesTaken += 1;
+        }
+        else {
+          stats.numForwardBranchesTaken += 1;
+        }
         rf.write(PC_REG, PC + 2 * signExtend8to32ui(cond.instr.b.imm) + 2);
+      }
+      else {
+        if (2 * signExtend8to32ui(cond.instr.b.imm) + 2 > 0) {
+          stats.numBackwardBranchesNotTaken += 1;
+        }
+        else {
+          stats.numForwardBranchesNotTaken += 1;
+        }
       }
       break;
     case UNCOND: /* Unconditional branch */

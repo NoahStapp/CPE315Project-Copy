@@ -235,15 +235,15 @@ RF:
 Total number of dynamic instructions: 160
 Number of Memory Reads: 64
 Number of Memory Writes: 46
-Number of Register Reads: 375
+Number of Register Reads: 377
 Number of Register Writes: 266
 Branches: 
   Forward:
+    Taken: 11
+    Not taken: 1
+  Backward:
     Taken: 0
     Not taken: 0
-  Backward:
-    Taken: 10
-    Not taken: 1
 256 byte cache (blocksize 4 bytes): 104 hits, 6 misses (hit rate: 94.5455%)
 256 byte cache (blocksize 8 bytes): 107 hits, 3 misses (hit rate: 97.2727%)
 256 byte cache (blocksize 16 bytes): 108 hits, 2 misses (hit rate: 98.1818%)
